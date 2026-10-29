@@ -1,17 +1,23 @@
-from pydantic import BaseModel, ConfigDict
 from datetime import datetime
 
+from pydantic import BaseModel, ConfigDict
+
+from .reservationStatus import ReservationStatus
+
+
 class RoomBookingCommand(BaseModel):
-    model_config = ConfigDict(extra="allow")
-    compositeBookingld: int 
+    model_config = ConfigDict(extra="allow") 
+
+    compositeBookingId: int
     roomId: int
     arrivalDate: datetime
     departureDate: datetime
 
 
-class ReservationStatusChangedPauload(BaseModel):
+class ReservationStatusChangedPayload(BaseModel):
     model_config = ConfigDict(extra="allow")
-    compositeBookingld: int
-    bookingId: str
+
+    compositeBookingId: int
+    bookingId: int
     roomId: int
-    reservationStatus: str
+    reservationStatus: ReservationStatus
