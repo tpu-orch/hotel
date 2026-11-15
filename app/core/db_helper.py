@@ -25,6 +25,6 @@ class DataBaseHelper:
             yield session
 
 db_helper = DataBaseHelper(
-    url=settings.db_url,
-    echo=settings.echo,
+    url=settings.DB_URL,
+    echo=settings.ECHO,
 )
