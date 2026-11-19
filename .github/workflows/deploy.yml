@@ -1,0 +1,50 @@
+name: Deploy
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: deploy
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    env:
+      SSH_HOST: ${{ secrets.SSH_HOST }}
+      SSH_USER: ${{ secrets.SSH_USER }}
+      APP_DIR: /srv/hotel
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Configure SSH
+        env:
+          SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
+          SSH_KNOWN_HOSTS: ${{ secrets.SSH_KNOWN_HOSTS }}
+        run: |
+          install -m 700 -d ~/.ssh
+          printf '%s\n' "$SSH_PRIVATE_KEY" > ~/.ssh/id_ed25519
+          chmod 600 ~/.ssh/id_ed25519
+          printf '%s\n' "$SSH_KNOWN_HOSTS" > ~/.ssh/known_hosts
+
+      - name: Copy application to server
+        run: |
+          ssh "$SSH_USER@$SSH_HOST" "mkdir -p $APP_DIR"
+          rsync -az \
+            --exclude='.git/' \
+            --exclude='.github/' \
+            --exclude='/.env' \
+            --exclude='venv/' \
+            --exclude='__pycache__/' \
+            --exclude='.pytest_cache/' \
+            ./ "$SSH_USER@$SSH_HOST:$APP_DIR/"
+
+      - name: Build and start application
+        run: |
+          ssh "$SSH_USER@$SSH_HOST" "set -eu; cd $APP_DIR; \
+            if [ ! -f .env ]; then echo 'Create .env on the server first (copy .env.example)'; exit 1; fi; \
+            docker compose up -d --build --wait; \
+            docker compose exec -T HotelServices alembic upgrade head"
